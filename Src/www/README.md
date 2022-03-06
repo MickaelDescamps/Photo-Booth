@@ -1,0 +1,1 @@
+# Front for Photo booth
