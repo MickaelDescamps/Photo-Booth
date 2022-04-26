@@ -9,12 +9,27 @@ Created: 24 April, 2022
 """
 
 # imports
-from flask import Flask
+from flask import Flask, jsonify
+from flask_cors import CORS
 
+# Configuration
+DEBUG = True
+
+# Init flask
 app = Flask(__name__)
+app.config.from_object(__name__)
+
+# enable CORS
+CORS(app, ressources={r'/*': {'origins': '*'}})
+
 
 @app.route('/')
 def index():
     return "Hello world !!!"
 
-app.run(host="0.0.0.0")
+@app.route('/ping', methods=['GET'])
+def ping_pong():
+    return jsonify("pong !")
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0")
