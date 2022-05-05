@@ -25,9 +25,6 @@ export default {
         .then((res) => {
           this.main_title = res.data.main_title;
           this.sub_title = res.data.sub_title;
-        })
-        .catch((error) => {
-          console.error(error);
         });
     },
   },

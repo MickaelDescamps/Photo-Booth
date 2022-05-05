@@ -21,14 +21,10 @@ export default {
       axios.get(path)
         .then((res) => {
           this.msg = res.data;
-        })
-        .catch((error) => {
-          console.error(error);
         });
     },
     loop() {
       window.setInterval(() => {
-        console.info('Call');
         this.getMessage();
       }, 500);
     },
