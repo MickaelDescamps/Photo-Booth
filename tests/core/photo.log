@@ -1,0 +1,3 @@
+   MainThread:23:48:01.331 util.py                                   327 DEBUG    | Send cmd --> echo "********" | sudo -S echo "VALID PASSWORD"
+   MainThread:23:48:01.342 util.py                                   335 DEBUG    | Receive response --> VALID PASSWORD
+
