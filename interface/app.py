@@ -1,29 +1,42 @@
+from os import path
+import sys
 from crypt import methods
 from http.client import HTTPResponse
 import json
-from lib2to3.pytree import Base
 import time
 import traceback
 from flask import Flask, Response, jsonify, request, send_from_directory
 from flask_cors import CORS
 import time
+import paho.mqtt.client as mqtt
 
 # configuration
 DEBUG = True
+MESSAGE_BUTTON = []
+MESSAGE_GOPRO = []
+STATE = "WAIT"
+NEW_PHOTO = ""
 
 
 # Init flask
 app = Flask(__name__)
 app.config.from_object(__name__)
 
-config_file = "/root/Photo-Booth/interface/configs.json"
+
+base_path = path.dirname(path.abspath(__file__))
+
+print(str(base_path))
+
+config_file = f"{base_path!s}/configs.json"
+
+print(config_file)
 
 CONFIG = None
 
 api_cors_config = {
     "origins": [
         "http://localhost:5000",
-        "http://localhost:8080"
+        "http://localhost:80"
     ],
     "methods": ["OPTIONS", "GET", "POST"],
     "allow_headers": ["Authorization"]
@@ -32,10 +45,16 @@ api_cors_config = {
 def load_confs():
     """Function to load app configs
     """
-    global CONFIG
-    
-    with open(config_file, 'r') as file:
-        CONFIG = json.loads(file.read())        
+
+    try:
+        global CONFIG
+        
+        with open(config_file, 'r') as file:
+            CONFIG = json.loads(file.read())
+
+            print(CONFIG)
+    except BaseException as ex:
+        print(repr(ex) + traceback.format_exc())
         
 def save_confs():
     """Function to save app configs
@@ -88,14 +107,97 @@ def get_take_photo_count():
 @app.route("/photos/<path:name>")
 def get_file(name):
     return send_from_directory(
-        "/root/Photo-Booth/photos", name
+        "/opt/photo_booth/images", name
     )
+@app.route('/api/get_state',methods=['GET'])
+def get_state():
+
+    try:
+
+        global MESSAGE_BUTTON, MESSAGE_GOPRO, NEW_PHOTO, STATE
+
+        if len(MESSAGE_BUTTON) > 0:
+            
+            if STATE == "WAIT":
+                STATE = "TAKE_PICTURE"
+                MESSAGE_BUTTON = []
+                ret = {"state": STATE}
+
+            elif STATE == "REVIEW":
+                STATE = "WAIT"
+                MESSAGE_BUTTON = []
+                ret = {"state": STATE}
+
+        elif len(MESSAGE_GOPRO) > 0:
+            if STATE == "TAKE_PICTURE":
+                STATE = "REVIEW"
+                NEW_PHOTO = MESSAGE_GOPRO[-1]["photo_name"]
+                NEW_PHOTO = "img.png"
+                ret = {"state": STATE, "photo_name" : NEW_PHOTO}
+
+        else:
+            ret = {"state": STATE}
+
+            if STATE == "REVIEW":
+                ret["photo_name"] = NEW_PHOTO
+
+    except BaseException as ex:
+        print(MESSAGE_BUTTON)
+        print(MESSAGE_GOPRO)
+        print(STATE)
+        print(repr(ex) + traceback.format_exc())
+        ret = {}
+            
+
+
+
+    return Response(json.dumps(ret), status=200)
+
+def on_message(client, userdata, message):
+
+    global MESSAGE_BUTTON, MESSAGE_GOPRO
+
+    if message.topic == "button/all":
+
+        new_message_content = message.payload.decode("utf-8")
+        new_message_time = json.loads(new_message_content)
+
+        if len(MESSAGE_BUTTON) == 0:
+            MESSAGE_BUTTON.append(new_message_time["time"])
+            print(f"Message cas 1 : {new_message_time['time']!s}")
+
+        elif new_message_time["time"] - MESSAGE[-1] > 0.25:
+            MESSAGE_BUTTON.append(new_message_time["time"])
+            print(f"Message cas 2 : {new_message_time['time']!s}")
+
+        print(MESSAGE_BUTTON)
+
+    elif message.topic == "gopro/new_photo":
+
+        gopro_message = json.loads(message.payload.decode("utf-8"))
+
+        if len(MESSAGE_GOPRO) == 0:
+            MESSAGE_GOPRO.append(gopro_message)
+        
+        elif gopro_message["time"] - MESSAGE_GOPRO[-1]["time"] > 0.25:
+            MESSAGE_GOPRO.append(gopro_message)
+
     
 
 if __name__ == '__main__':
     try:
         load_confs()
+
+        client_mqtt = mqtt.Client()
+        client_mqtt.connect("localhost", port=1883)
+        client_mqtt.subscribe("button/#",2)
+        client_mqtt.subscribe("gopro/#",2)
+        client_mqtt.on_message = on_message
+        client_mqtt.loop_start()
+
         app.run("0.0.0.0")
+
+        client_mqtt.loop_stop()
     except BaseException as ex:
         save_confs()
         print(str(ex))

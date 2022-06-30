@@ -1,4 +1,4 @@
-#!/root/Photo-Booth/interface/env/bin/python3.10
+#!/opt/photo_booth/Photo-Booth/interface/env/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys
