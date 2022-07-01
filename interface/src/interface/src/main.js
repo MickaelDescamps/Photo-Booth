@@ -1,9 +1,18 @@
 import axios from 'axios';
 import Vue from 'vue';
+import { BootstrapVue, IconsPlugin } from 'bootstrap-vue';
+
+// Import Bootstrap and BootstrapVue CSS files (order is important)
+import 'bootstrap/dist/css/bootstrap.css';
+import 'bootstrap-vue/dist/bootstrap-vue.css';
 import App from './App.vue';
 import router from './router';
 
 Vue.config.productionTip = false;
+// Make BootstrapVue available throughout your project
+Vue.use(BootstrapVue);
+// Optionally install the BootstrapVue icon components plugin
+Vue.use(IconsPlugin);
 
 new Vue({
   router,
@@ -28,7 +37,8 @@ new Vue({
               this.$router.push({ name: 'TakePhotoView' });
             } else if (res.data.state === 'REVIEW') {
               this.current_state = res.data.state;
-              this.$router.push({ name: 'ConfirmPhoto' });
+              console.log(res.data.photo_name);
+              this.$router.push({ name: 'ConfirmPhoto', params: { photoPath: res.data.photo_name } });
             }
           }
         });
@@ -36,7 +46,7 @@ new Vue({
     loop() {
       this.intervalId2 = window.setInterval(() => {
         this.getState();
-      }, (500));
+      }, (100));
     },
   },
   created() {

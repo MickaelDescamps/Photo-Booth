@@ -16,6 +16,7 @@ MESSAGE_BUTTON = []
 MESSAGE_GOPRO = []
 STATE = "WAIT"
 NEW_PHOTO = ""
+CLIENT_MQTT = None
 
 
 # Init flask
@@ -114,11 +115,12 @@ def get_state():
 
     try:
 
-        global MESSAGE_BUTTON, MESSAGE_GOPRO, NEW_PHOTO, STATE
+        global MESSAGE_BUTTON, MESSAGE_GOPRO, NEW_PHOTO, STATE, CLIENT_MQTT
 
         if len(MESSAGE_BUTTON) > 0:
             
             if STATE == "WAIT":
+                CLIENT_MQTT.publish("gopro/take_picture", json.dumps({"time":time.time()}), qos=2, retain=False)
                 STATE = "TAKE_PICTURE"
                 MESSAGE_BUTTON = []
                 ret = {"state": STATE}
@@ -132,8 +134,8 @@ def get_state():
             if STATE == "TAKE_PICTURE":
                 STATE = "REVIEW"
                 NEW_PHOTO = MESSAGE_GOPRO[-1]["photo_name"]
-                NEW_PHOTO = "img.png"
                 ret = {"state": STATE, "photo_name" : NEW_PHOTO}
+                MESSAGE_GOPRO = []
 
         else:
             ret = {"state": STATE}
@@ -141,17 +143,17 @@ def get_state():
             if STATE == "REVIEW":
                 ret["photo_name"] = NEW_PHOTO
 
+        return Response(json.dumps(ret), status=200)
+
     except BaseException as ex:
         print(MESSAGE_BUTTON)
         print(MESSAGE_GOPRO)
         print(STATE)
         print(repr(ex) + traceback.format_exc())
         ret = {}
-            
 
+        return Response(json.dumps(ret), status=200)
 
-
-    return Response(json.dumps(ret), status=200)
 
 def on_message(client, userdata, message):
 
@@ -166,13 +168,13 @@ def on_message(client, userdata, message):
             MESSAGE_BUTTON.append(new_message_time["time"])
             print(f"Message cas 1 : {new_message_time['time']!s}")
 
-        elif new_message_time["time"] - MESSAGE[-1] > 0.25:
+        elif new_message_time["time"] - MESSAGE_BUTTON[-1] > 0.25:
             MESSAGE_BUTTON.append(new_message_time["time"])
             print(f"Message cas 2 : {new_message_time['time']!s}")
 
         print(MESSAGE_BUTTON)
 
-    elif message.topic == "gopro/new_photo":
+    elif message.topic == "gopro/new_image":
 
         gopro_message = json.loads(message.payload.decode("utf-8"))
 
@@ -186,18 +188,19 @@ def on_message(client, userdata, message):
 
 if __name__ == '__main__':
     try:
+
         load_confs()
 
-        client_mqtt = mqtt.Client()
-        client_mqtt.connect("localhost", port=1883)
-        client_mqtt.subscribe("button/#",2)
-        client_mqtt.subscribe("gopro/#",2)
-        client_mqtt.on_message = on_message
-        client_mqtt.loop_start()
+        CLIENT_MQTT = mqtt.Client()
+        CLIENT_MQTT.connect("localhost", port=1883)
+        CLIENT_MQTT.subscribe("button/#",2)
+        CLIENT_MQTT.subscribe("gopro/new_image",2)
+        CLIENT_MQTT.on_message = on_message
+        CLIENT_MQTT.loop_start()
 
         app.run("0.0.0.0")
 
-        client_mqtt.loop_stop()
+        CLIENT_MQTT.loop_stop()
     except BaseException as ex:
         save_confs()
         print(str(ex))

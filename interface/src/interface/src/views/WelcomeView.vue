@@ -43,7 +43,7 @@ export default {
 #page
 {
   width:100%;
-  height:100%;
+  height:90%;
   display:flex;
   flex-direction: column;
   justify-content: center;
@@ -51,10 +51,22 @@ export default {
 }
 #message
 {
-  width: fit-content;
+  width: 80%;
+  height: 80%;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
   align-self: center;
   padding:5%;
-  background-color: rgb(235, 235, 235);
-  border: 0.5em darkblue solid;
+}
+
+h1
+{
+  font-size:5em;
+}
+h2
+{
+  font-size:3em;
 }
 </style>

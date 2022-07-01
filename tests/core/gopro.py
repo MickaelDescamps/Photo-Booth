@@ -82,7 +82,7 @@ def get_photo_names(media_list_response) -> list:
 def download_photo(file_name, directory_name):
     route = gopro_api + "/videos/DCIM/" + directory_name + "/" + file_name
     
-    path = "c:/Users/miked/Pictures/"+ file_name
+    path = "/opt/photo_booth/images/"+ file_name
 
     r = requests.get(route, stream=True)
     

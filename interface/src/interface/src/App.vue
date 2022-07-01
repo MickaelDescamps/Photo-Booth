@@ -28,6 +28,7 @@ html, body {
 
 nav {
   padding: 30px;
+  height:3%;
   background-color: rgb(235, 235, 235);
 }
 
